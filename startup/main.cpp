@@ -1,143 +1,227 @@
 #include <stdint.h>
-
-int strcmp(const char* s1, const char* s2) {
-    while(*s1 && *s2) {
-        if(*s1 != *s2) return (unsigned char)*s1 - (unsigned char)*s2;
-        s1++;
-        s2++;
-    }
-    return (unsigned char)*s1 - (unsigned char)*s2;
-}
-
-extern "C" {
-    extern char __fb_base; // provided by linker
-}
+#include "../libkern/std/standard.h"
+#include "../libkern/std/log.h"
+#include "../libkern/font.h"
+#include "../libui/coregraphics/cg.h"
 
 #define FB_WIDTH  800
 #define FB_HEIGHT 600
-
-static inline volatile uint16_t* fb_ptr() {
-    return (volatile uint16_t*)&__fb_base;
-}
 
 void fb_putpixel(int x, int y, uint16_t color) {
     volatile uint16_t* fb = fb_ptr();
     fb[y * FB_WIDTH + x] = color;
 }
 
-// PL011 UART0 base
-#define UART0_BASE 0x09000000UL
-#define UART0_DR   (*(volatile uint32_t*)(UART0_BASE + 0x00))
-#define UART0_FR   (*(volatile uint32_t*)(UART0_BASE + 0x18))
-
-// Send a single character
-void uart_putc(char c) {
-    while (UART0_FR & (1 << 5)) ; // wait if TX FIFO full
-    UART0_DR = c;
-}
-
-// Send a null-terminated string
-void uart_puts(const char* s) {
-    while(*s) uart_putc(*s++);
-}
-
-static const char hexchars[] = "0123456789ABCDEF";
-
-void print_hex(uint64_t val, int digits) {
-    for (int i = (digits - 1) * 4; i >= 0; i -= 4) {
-        uint8_t nibble = (val >> i) & 0xF;
-        uart_putc(hexchars[nibble]);
+void fb_drawchar(int x, int y, char c, uint16_t color) {
+    if (c < 0 || c > 127) return; // only ASCII
+    const uint8_t* glyph = font8x8_basic[(int)c];
+    for (int row = 0; row < 8; row++) {
+        uint8_t bits = glyph[row];
+        for (int col = 0; col < 8; col++) {
+            if (bits & (1 << (7 - col))) {
+                fb_putpixel(x + col, y + row, color);
+            }
+        }
     }
-    uart_putc('\n');
 }
 
-enum LogLevel {
-    LOG_NONE,
-    LOG_INFO,
-    LOG_WARN,
-    LOG_ERROR,
+void fb_drawstr(int x, int y, const char* s, uint16_t color) {
+    while (*s) {
+        fb_drawchar(x, y, *s++, color);
+        x += 8; // move right by char width
+    }
+}
+
+#define LOGO_WIDTH 16
+#define LOGO_HEIGHT 16
+
+// 1 = white pixel, 0 = black pixel
+const uint16_t boot_logo[LOGO_HEIGHT][LOGO_WIDTH] = {
+    {0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0},
+    {0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0},
+    {0,1,1,0,0,1,1,1,1,1,0,0,1,1,0,0},
+    {1,1,0,0,0,1,1,1,1,1,0,0,0,1,1,0},
+    {1,1,0,0,0,1,1,1,1,1,0,0,0,1,1,0},
+    {1,1,0,0,0,1,1,1,1,1,0,0,0,1,1,0},
+    {1,1,0,0,0,0,1,1,1,1,0,0,0,1,1,0},
+    {1,1,0,0,0,0,0,1,1,0,0,0,0,1,1,0},
+    {1,1,0,0,0,0,0,1,1,0,0,0,0,1,1,0},
+    {1,1,0,0,0,0,1,1,1,1,0,0,0,1,1,0},
+    {1,1,0,0,0,1,1,1,1,1,0,0,0,1,1,0},
+    {1,1,0,0,0,1,1,1,1,1,0,0,0,1,1,0},
+    {0,1,1,0,0,1,1,1,1,1,0,0,1,1,0,0},
+    {0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0},
+    {0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 };
 
-static const char* log_level_str[] = {
-    " ",
-    "INFO",
-    "WARN",
-    "ERROR"
-};
-
-void uart_putnum(uint64_t val) {
-    if (val == 0) { uart_putc('0'); return; }
-    char buf[20];
-    int i = 0;
-    while (val) { buf[i++] = '0' + (val % 10); val /= 10; }
-    for (int j=i-1; j>=0; j--) uart_putc(buf[j]);
-}
-
-static inline uint64_t read_cntpct(void) {
-    uint64_t cnt;
-    asm volatile("mrs %0, cntvct_el0" : "=r"(cnt));
-    return cnt;
-}
-
-static inline uint64_t read_cntfrq(void) {
-    uint64_t freq;
-    asm volatile("mrs %0, cntfrq_el0" : "=r"(freq));
-    return freq;
-}
-
-uint64_t millis() {
-    static uint64_t freq = 0;
-    if (!freq) freq = read_cntfrq();  // cache frequency
-    uint64_t cnt = read_cntpct();
-    return (cnt * 1000) / freq;       // ms
-}
-
-void uart_puttime(uint64_t ms) {
-    // Print seconds as sssss.mmmmmm
-    uint64_t sec = ms / 1000;
-    uint64_t frac = (ms % 1000) * 1000; // microseconds
-    // print sec
-    uart_putnum(sec);
-    uart_putc('.');
-    // print frac with 6 digits, padded
-    char buf[7];
-    for (int i = 5; i >= 0; i--) {
-        buf[i] = '0' + (frac % 10);
-        frac /= 10;
+void fb_draw_logo(int x0, int y0, uint16_t color) {
+    for (int y = 0; y < LOGO_HEIGHT; y++) {
+        for (int x = 0; x < LOGO_WIDTH; x++) {
+            if (boot_logo[y][x])
+                fb_putpixel(x0 + x, y0 + y, color);
+        }
     }
-    buf[6] = 0;
-    uart_puts(buf);
 }
 
-void log(LogLevel level, const char* msg) {
-    uint64_t ts = millis();  // real milliseconds since boot
-    uart_puttime(ts);
-    uart_putc(' ');
-    uart_putc('[');
-    uart_puts(log_level_str[level]);
-    uart_putc(']');
-    uart_putc(' ');
-    uart_puts(msg);
-    uart_putc('\n');
-}
-
-void log_subsystem(const char* subsystem, LogLevel level, const char* msg) {
-    uint64_t ts = millis();  // milliseconds since boot
-    uart_puttime(ts);
-
-    uart_puts("  ");
-    uart_puts(subsystem);    // subsystem name
-    uart_puts(":");
-    if (level != LOG_NONE)
-    {
-        uart_putc(' ');
-        uart_putc('[');
-        uart_puts(log_level_str[level]); // log level
-        uart_putc(']');
+void fb_draw_logo_scaled(int x0, int y0, uint16_t color, int scale) {
+    for (int y = 0; y < LOGO_HEIGHT; y++) {
+        for (int x = 0; x < LOGO_WIDTH; x++) {
+            if (boot_logo[y][x]) {
+                // Draw a scale x scale block
+                for (int dy = 0; dy < scale; dy++) {
+                    for (int dx = 0; dx < scale; dx++) {
+                        fb_putpixel(x0 + x*scale + dx, y0 + y*scale + dy, color);
+                    }
+                }
+            }
+        }
     }
-    uart_putc(' ');
-    uart_puts(msg);
 }
+
+#define BAR_WIDTH 128
+#define BAR_HEIGHT 8
+
+void fb_draw_rect(int x0, int y0, int w, int h, uint16_t color) {
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            fb_putpixel(x0 + x, y0 + y, color);
+        }
+    }
+}
+
+void fb_draw_progress(int x0, int y0, int width, int height, int percent, uint16_t color_bg, uint16_t color_fg) {
+    fb_draw_rect(x0, y0, width, height, color_bg); // background
+    int filled = (width * percent) / 100;
+    fb_draw_rect(x0, y0, filled, height, color_fg); // foreground
+}
+
+void fb_drawchar_scaled(int x0, int y0, char c, uint16_t color, int scale) {
+    if (c < 0 || c > 127) return; // only ASCII
+    const uint8_t* glyph = font8x8_basic[(int)c];
+    for (int row = 0; row < 8; row++) {
+        uint8_t bits = glyph[row];
+        for (int col = 0; col < 8; col++) {
+            if (bits & (1 << (7 - col))) {
+                // Draw a scale x scale block
+                for (int dy = 0; dy < scale; dy++) {
+                    for (int dx = 0; dx < scale; dx++) {
+                        fb_putpixel(x0 + col*scale + dx, y0 + row*scale + dy, color);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void fb_drawstr_scaled(int x, int y, const char* s, uint16_t color, int scale) {
+    while (*s) {
+        fb_drawchar_scaled(x, y, *s++, color, scale);
+        x += 8 * scale; // move right by scaled char width
+    }
+}
+
+void panic(const char *msg)
+{
+    fb_draw_rect(0, 0, FB_WIDTH, FB_HEIGHT, 0x2965);
+    fb_drawstr_scaled(45, 10, "KERNEL PANIC EXCEPTION", 0xF800, 4);
+    fb_drawstr_scaled(10, 70, msg, 0xFFFF, 2);
+
+    fb_drawstr_scaled(100, 150, "PLEASE RESTART YOUR DEVICE", 0xFFFF, 2);
+    while(1);
+}
+
+#define MAX_LAYERS 8
+
+typedef struct {
+    int ctx_id;   // CoreGraphics context index
+    int x, y;     // position on screen
+    int active;
+} Layer;
+
+static Layer layers[MAX_LAYERS];
+
+int LayerCreate(int ctx_id, int x, int y) {
+    log_subsystem("QuartzCompositor", LOG_NONE, "Creating layer\n");
+    for (int i = 0; i < MAX_LAYERS; i++) {
+        if (!layers[i].active) {
+            layers[i].ctx_id = ctx_id;
+            layers[i].x = x;
+            layers[i].y = y;
+            layers[i].active = 1;
+            return i;
+        }
+        log_subsystem("QuartzCompositor", LOG_INFO, "Created layer\n");
+    }
+    log_subsystem("QuartzCompositor", LOG_ERROR, "Failed to create layer: no layers free\n");
+    return -1; // no free layer
+}
+
+void LayerSetPos(int layer_id, int x, int y) {
+    if (layer_id < 0 || layer_id >= MAX_LAYERS) return;
+    if (!layers[layer_id].active) return;
+    layers[layer_id].x = x;
+    layers[layer_id].y = y;
+}
+
+void LayerRemove(int layer_id) {
+    if (layer_id < 0 || layer_id >= MAX_LAYERS) return;
+    log_subsystem("QuartzCompositor", LOG_NONE, "Removing layer\n");
+    layers[layer_id].active = 0;
+}
+
+void CompositorDraw() {
+    volatile uint16_t* fb = fb_ptr();
+
+    // Clear framebuffer first
+    for (int y = 0; y < FB_HEIGHT; y++)
+        for (int x = 0; x < FB_WIDTH; x++)
+            fb[y * FB_WIDTH + x] = 0x0000;
+
+    // Draw layers in order
+    for (int i = 0; i < MAX_LAYERS; i++) {
+        if (!layers[i].active) continue;
+        CGContext* ctx = &contexts[layers[i].ctx_id];
+        for (int y = 0; y < ctx->height; y++) {
+            for (int x = 0; x < ctx->width; x++) {
+                int fb_x = layers[i].x + x;
+                int fb_y = layers[i].y + y;
+                if (fb_x >= 0 && fb_y >= 0 && fb_x < FB_WIDTH && fb_y < FB_HEIGHT) {
+                    fb[fb_y * FB_WIDTH + fb_x] = ctx->buffer[y][x];
+                }
+            }
+        }
+    }
+}
+
+void CompositorDrawDirty() {
+    volatile uint16_t* fb = fb_ptr();
+
+    // Draw layers in order
+    for (int i = 0; i < MAX_LAYERS; i++) {
+        if (!layers[i].active) continue;
+        CGContext* ctx = &contexts[layers[i].ctx_id];
+
+        for (int y = 0; y < ctx->height; y++) {
+            for (int x = 0; x < ctx->width; x++) {
+                int fb_x = layers[i].x + x;
+                int fb_y = layers[i].y + y;
+
+                if (fb_x < 0 || fb_y < 0 || fb_x >= FB_WIDTH || fb_y >= FB_HEIGHT)
+                    continue;
+
+                uint16_t pixel = ctx->buffer[y][x];
+                volatile uint16_t* fb_pixel = &fb[fb_y * FB_WIDTH + fb_x];
+
+                if (*fb_pixel != pixel) {
+                    *fb_pixel = pixel;
+                }
+            }
+        }
+    }
+}
+
+int bootDelay = 20000000;
 
 extern "C" int main()
 {
@@ -150,7 +234,37 @@ extern "C" int main()
     print_hex(fb_addr, 16);
     uart_puts("\n");
 
-    fb_putpixel(600, 500, 0xFFFF);
+    int logo_x = (FB_WIDTH - LOGO_WIDTH * 4) / 2;
+    int logo_y = (FB_HEIGHT - LOGO_HEIGHT* 4) / 2;
+    fb_draw_logo_scaled(logo_x, logo_y, 0xFFFF, 4); // white
 
-    while(1);
+    // Draw loading bar under logo
+    int bar_x = (FB_WIDTH - BAR_WIDTH) / 2;
+    int bar_y = logo_y + LOGO_HEIGHT * 4 + 16; // 16 px spacing
+
+    fb_draw_progress(bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT, 10, 0x0000, 0xFFFF);
+    for (volatile int i = 0; i < bootDelay; i++); // delay
+    fb_draw_progress(bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT, 20, 0x0000, 0xFFFF);
+    for (volatile int i = 0; i < bootDelay; i++);
+    fb_draw_progress(bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT, 50, 0x0000, 0xFFFF);
+    for (volatile int i = 0; i < bootDelay; i++);
+    fb_draw_progress(bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT, 100, 0x0000, 0xFFFF);
+    for (volatile int i = 0; i < bootDelay; i++);
+
+    fb_draw_rect(0, 0, FB_WIDTH, FB_HEIGHT, 0x0000);
+    for (volatile int i = 0; i < bootDelay; i++);
+    
+    int ctx1 = CGContextCreate(200, 50);
+    CGContextFillRect(ctx1, 0, 0, 200, 50, 0xF800); // red
+
+    int ctx2 = CGContextCreate(100, 100);
+    CGContextFillRect(ctx2, 0, 0, 100, 100, 0x001F); // blue
+
+    int layer1 = LayerCreate(ctx1, 100, 50);
+    int layer2 = LayerCreate(ctx2, 150, 100);
+
+    while(1)
+    {
+        CompositorDrawDirty();
+    }
 }
