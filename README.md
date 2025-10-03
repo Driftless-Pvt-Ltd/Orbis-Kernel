@@ -76,9 +76,29 @@ cd Orbis-Kernel
 - [ ] Add filesystem and network support
 - [ ] Optimize cross-platform performance
 
+## Support Orbis
+
+Orbis is being built from the ground up by a new generation of developers,
+Our goal is to create a cross-platform 64-bit operating system with a macOS-inspired architecture, compatibility for Linux + Windows apps, and a sleek, modern UI.
+
+If you believe in the mission and want to be part of the journey, you can support development through donations.  
+Your support helps us cover dev boards, testing hardware, and keeps the project moving faster.
+
+### Supporter Tiers
+- **$1+** → Your name forever listed in `SUPPORTERS.md`  
+- **$5+** → Special role in our community Discord / subreddit flair  
+- **$10+** → Early access to select blog posts & demos  
+- **$25+** → "Founding Supporter" badge on the Orbis website + README shoutout  
+
+[**Donate to Orbis**](https://paypal.me/MinicomputerSoftware)  
+**Crypto (ETH)**: 0x2C2bfD110747a9a25263C5C9bC1027542a86Ffb8
+
+Thank you for helping build the future of open-source operating systems!
+
 ## Contact & Contributions
 Orbis is **open for contribution.** Interested developers can fork the repository, submit pull requests, and join discussions in the GitHub issues.
 
 For professional inquiries or collaboration, reach out via email: minicomputersoftware@gmail.com
+
 
 
