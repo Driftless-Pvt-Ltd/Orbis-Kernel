@@ -12,7 +12,7 @@
 #define GUEST_RAM_BASE 0x40000000ULL
 
 int main() {
-    unsigned long long fb_phys = 0x00000000403AD000ULL;
+    unsigned long long fb_phys = 0x00000000403CD000ULL;
     if (fb_phys < GUEST_RAM_BASE) {
         fprintf(stderr, "fb_phys (0x%llx) < guest RAM base (0x%llx)\n",
                 fb_phys, (unsigned long long)GUEST_RAM_BASE);

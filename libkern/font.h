@@ -1,3 +1,12 @@
+/* ===========================================================================
+ *  Orbis Kernel – 8x8 Bitmap Font (font.h)
+ *  Author: Kap Petrov (@VigfallStudios)
+ *  Description: Provides the 8x8 bitmap font for early UI
+ *               and logging.
+ *  License: None
+ * ===========================================================================
+ */
+
 #ifndef FONT_H
 #define FONT_H
 
@@ -328,8 +337,6 @@ const uint8_t font8x8_basic[128][8] = {
         0b00000000
     },
 
-
-    // 68–127: empty
     {0},   // 84–91
     {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0},   // 92–99
     {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0},   // 100–107

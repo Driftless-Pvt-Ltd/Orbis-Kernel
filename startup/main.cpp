@@ -1,8 +1,17 @@
+/* ===========================================================================
+ *  Orbis Kernel – Main Kernel Source (main.cpp)
+ *  Author: Kap Petrov (@VigfallStudios)
+ *  Description: Implements initialization code, logo
+ *               display, and simple layered compositing.
+ * ===========================================================================
+ */
+
 #include <stdint.h>
 #include "../libkern/std/standard.h"
 #include "../libkern/std/log.h"
 #include "../libkern/font.h"
 #include "../libui/coregraphics/cg.h"
+#include "../libkern/mm/pmm.h"
 
 #define FB_WIDTH  800
 #define FB_HEIGHT 600
@@ -123,11 +132,19 @@ void fb_drawstr_scaled(int x, int y, const char* s, uint16_t color, int scale) {
 
 void panic(const char *msg)
 {
+    log_subsystem("kernel", LOG_ERROR, "*** Panic ***\n");
+
     fb_draw_rect(0, 0, FB_WIDTH, FB_HEIGHT, 0x2965);
     fb_drawstr_scaled(45, 10, "KERNEL PANIC EXCEPTION", 0xF800, 4);
-    fb_drawstr_scaled(10, 70, msg, 0xFFFF, 2);
+    fb_drawstr_scaled(16, 570, msg, 0xFFFF, 2);
 
-    fb_drawstr_scaled(100, 150, "PLEASE RESTART YOUR DEVICE", 0xFFFF, 2);
+    fb_drawstr_scaled(120, 150, "YOU NEED TO RESTART YOUR COMPUTER", 0xFFFF, 2);
+    fb_drawstr_scaled(120, 200, "NECESITAS REINICIAR TU COMPUTADORA", 0xFFFF, 2);
+    fb_drawstr_scaled(120, 250, "SIE MUSSEN IHREN COMPUTER NEU STARTEN", 0xFFFF, 2);
+    fb_drawstr_scaled(120, 300, "VAM NUZHNO PEREZAGRUZIT KOMPYUTER", 0xFFFF, 2);
+
+    log_subsystem("panic", LOG_NONE, "hanging here...\n");
+
     while(1);
 }
 
@@ -223,6 +240,9 @@ void CompositorDrawDirty() {
 
 int bootDelay = 20000000;
 
+extern "C" uintptr_t __phys_mem_start;
+extern "C" uintptr_t __phys_mem_end;
+
 extern "C" int main()
 {
     log_subsystem("kernel", LOG_NONE, "booting\n");
@@ -244,10 +264,22 @@ extern "C" int main()
 
     fb_draw_progress(bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT, 10, 0x0000, 0xFFFF);
     for (volatile int i = 0; i < bootDelay; i++); // delay
+
+    log_subsystem("PhysicalMemoryManager", LOG_INFO, "initializing\n");
+    pmm_init((uintptr_t)&__phys_mem_start, (uintptr_t)&__phys_mem_end);
+
     fb_draw_progress(bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT, 20, 0x0000, 0xFFFF);
     for (volatile int i = 0; i < bootDelay; i++);
+
+    log_subsystem("PhysicalMemoryManager", LOG_INFO, "allocating\n");
+    uintptr_t page = pmm_alloc_page();
+
     fb_draw_progress(bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT, 50, 0x0000, 0xFFFF);
     for (volatile int i = 0; i < bootDelay; i++);
+
+    log_subsystem("PhysicalMemoryManager", LOG_INFO, "freeing\n");
+    pmm_free_page(page);
+
     fb_draw_progress(bar_x, bar_y, BAR_WIDTH, BAR_HEIGHT, 100, 0x0000, 0xFFFF);
     for (volatile int i = 0; i < bootDelay; i++);
 

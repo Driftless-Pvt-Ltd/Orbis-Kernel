@@ -13,3 +13,6 @@ all:
 	./viewer
 
 	rm main.o os.elf startup.o
+
+viewer:
+	gcc viewer.c -o viewer -lSDL2

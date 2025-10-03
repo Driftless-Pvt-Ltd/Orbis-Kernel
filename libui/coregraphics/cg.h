@@ -1,3 +1,12 @@
+/* ===========================================================================
+ *  Orbis Kernel – Core Graphics (cg.h)
+ *  Author: Kap Petrov (@VigfallStudios)
+ *  Description: Manages low-level drawing. Provides a low
+ *               level API for drawing using Contexts.
+ *  License: None
+ * ===========================================================================
+ */
+
 #ifndef COREGRAPHICS_H
 #define COREGRAPHICS_H
 

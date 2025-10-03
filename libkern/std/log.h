@@ -1,3 +1,12 @@
+/* ===========================================================================
+ *  Orbis Kernel – Logging System (log.h)
+ *  Author: Kap Petrov (@VigfallStudios)
+ *  Description: Manages kernel logging. Provides logging
+ *               functions for debugging purposes.
+ *  License: None
+ * ===========================================================================
+ */
+
 #ifndef LOG_H
 #define LOG_H
 

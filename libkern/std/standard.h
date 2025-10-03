@@ -1,3 +1,13 @@
+/* ===========================================================================
+ *  Orbis Kernel – Standard Global Header (standard.h)
+ *  Author: Kap Petrov (@VigfallStudios)
+ *  Description: Provides standard functions and global
+ *               variables for every source file.
+ *  License: None
+ * ===========================================================================
+ */
+
+
 #ifndef STAND_H
 #define STAND_H
 
