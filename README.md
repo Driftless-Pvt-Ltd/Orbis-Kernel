@@ -1,6 +1,10 @@
 # Orbis
 **A 64-bit cross-platform operating system combining macOS-like architecture with Linux + Windows + Mach-O app compatibility.**
 
+![GitHub issues](https://img.shields.io/github/issues/Driftless-Pvt-Ltd/Orbis-Kernel)
+![GitHub stars](https://img.shields.io/github/stars/Driftless-Pvt-Ltd/Orbis-Kernel?style=social)
+![GitHub forks](https://img.shields.io/github/forks/Driftless-Pvt-Ltd/Orbis-Kernel?style=social)
+
 ---
 
 ## Overview
@@ -76,4 +80,5 @@ cd Orbis-Kernel
 Orbis is **open for contribution.** Interested developers can fork the repository, submit pull requests, and join discussions in the GitHub issues.
 
 For professional inquiries or collaboration, reach out via email: minicomputersoftware@gmail.com
+
 
