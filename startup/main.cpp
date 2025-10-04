@@ -55,13 +55,20 @@ extern "C" void user_mode_entry(void)
     volatile uint64_t *flag = (volatile uint64_t *)0x40414000; // write somewhere safe
     *flag = 0xDEADBEEF;
 
+    int itworked = 0;
+    const char msg[] = "HELLO WORLD\n";
+
     while (1)
     {
-        fb_draw_rect(0, 0, 50, 50, 0xF800); // red square
-        for (volatile int i=0;i<500000;i++);
-        fb_draw_rect(0, 0, 50, 50, 0x07E0); // green square
-        for (volatile int i=0;i<500000;i++);
-        syscall(SYSCALL_TEST, 0, 0, 0);
+        if (itworked == 0)
+        {
+            // Write to stdout (fd = 1)
+            syscall(SYSCALL_WRITE, 1, (uint64_t)msg, sizeof(msg) - 1);
+
+            // Exit cleanly
+            syscall(SYSCALL_EXIT, 0, 0, 0);
+            itworked = 1;
+        }
     }
 }
 
@@ -89,7 +96,42 @@ extern "C" void syscall_handler(syscall_regs_t* regs)
     print_hex(regs->x1, 16); uart_puts(", ");
     print_hex(regs->x2, 16); uart_puts("\n");
 
-    regs->x0 = 0x1234ABCD;
+    switch (regs->syscall_num)
+    {
+        case SYSCALL_EXIT:
+            uart_puts("exit() not implemented\n");
+            regs->x0 = 0;
+            break;
+
+        case SYSCALL_FORK:
+            uart_puts("TODO: Implement this!\n");
+            regs->x0 = 0;
+            break;
+
+        case SYSCALL_READ:
+            uart_puts("TODO: Implement this!\n");
+            regs->x0 = 0;
+            break;
+
+        case SYSCALL_WRITE:
+        {
+            int fd = regs->x0;
+            const char *buf = (const char*)regs->x1;
+            uint64_t len = (uint64_t)regs->x2;
+
+            if (fd == 1) { // stdout
+                uart_puts(buf); // UART
+                fb_drawstr_scaled(70, 10, buf, 0xFFFF, 2); // framebuffer
+            }
+            
+            regs->x0 = len; // return bytes written
+            break;
+        }
+        
+        default:
+            regs->x0 = -1;
+            break;
+    }
 }
 
 extern "C" void enter_user_mode()
