@@ -38,6 +38,17 @@ int bootDelay = 20000000;
 extern "C" uintptr_t __phys_mem_start;
 extern "C" uintptr_t __phys_mem_end;
 
+extern "C" void el1_vector_table(void);
+
+static inline uint64_t syscall(uint64_t num, uint64_t arg0, uint64_t arg1, uint64_t arg2) {
+    register uint64_t x0 asm("x0") = arg0;
+    register uint64_t x1 asm("x1") = arg1;
+    register uint64_t x2 asm("x2") = arg2;
+    register uint64_t x8 asm("x8") = num;  // syscall number
+    asm volatile("svc #0" : "+r"(x0) : "r"(x1), "r"(x2), "r"(x8) : "memory");
+    return x0; // return value in x0
+}
+
 extern "C" void user_mode_entry(void)
 {
     // This code runs in EL0 (user mode)
@@ -50,7 +61,35 @@ extern "C" void user_mode_entry(void)
         for (volatile int i=0;i<500000;i++);
         fb_draw_rect(0, 0, 50, 50, 0x07E0); // green square
         for (volatile int i=0;i<500000;i++);
+        syscall(SYSCALL_TEST, 0, 0, 0);
     }
+}
+
+typedef struct {
+    uint64_t x0;
+    uint64_t x1;
+    uint64_t x2;
+    uint64_t x3;
+    uint64_t x4;
+    uint64_t x5;
+    uint64_t x6;
+    uint64_t x7;
+    uint64_t syscall_num; // x8
+} syscall_regs_t;
+
+extern "C" void syscall_handler(syscall_regs_t* regs)
+{
+    log_subsystem("SyscallHandler", LOG_INFO, "syscall triggered: ");
+
+    print_hex(regs->syscall_num, 16);
+    uart_puts("\n");
+
+    uart_puts("Args: ");
+    print_hex(regs->x0, 16); uart_puts(", ");
+    print_hex(regs->x1, 16); uart_puts(", ");
+    print_hex(regs->x2, 16); uart_puts("\n");
+
+    regs->x0 = 0x1234ABCD;
 }
 
 extern "C" void enter_user_mode()
@@ -118,6 +157,7 @@ extern "C" int main()
     for (volatile int i = 0; i < bootDelay; i++);
 
     log_subsystem("kernel", LOG_NONE, "entering EL0\n");
+    asm volatile("msr vbar_el1, %0" :: "r"(el1_vector_table) : "memory");
     enter_user_mode();
 
     // Should never reach here
