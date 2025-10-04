@@ -65,6 +65,7 @@ cd Orbis-Kernel
 - Kap Petrov: Lead Developer, Kernel & System Architecture
 - Vincent C.: UI/UX Design & System Research
 - Mohammed Abdelkafi: Documentation & Contribution Management
+- Ayoub Lakrad: Junior Kernel Developer
 
 ## Roadmap
 
@@ -99,6 +100,7 @@ Thank you for helping build the future of open-source operating systems!
 Orbis is **open for contribution.** Interested developers can fork the repository, submit pull requests, and join discussions in the GitHub issues.
 
 For professional inquiries or collaboration, reach out via email: minicomputersoftware@gmail.com
+
 
 
 
