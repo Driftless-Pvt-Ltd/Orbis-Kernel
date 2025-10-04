@@ -38,6 +38,42 @@ int bootDelay = 20000000;
 extern "C" uintptr_t __phys_mem_start;
 extern "C" uintptr_t __phys_mem_end;
 
+extern "C" void user_mode_entry(void)
+{
+    // This code runs in EL0 (user mode)
+    volatile uint64_t *flag = (volatile uint64_t *)0x40414000; // write somewhere safe
+    *flag = 0xDEADBEEF;
+
+    while (1)
+    {
+        fb_draw_rect(0, 0, 50, 50, 0xF800); // red square
+        for (volatile int i=0;i<500000;i++);
+        fb_draw_rect(0, 0, 50, 50, 0x07E0); // green square
+        for (volatile int i=0;i<500000;i++);
+    }
+}
+
+extern "C" void enter_user_mode()
+{
+    static uint8_t el0_stack[4096];
+    uintptr_t sp_el0 = (uintptr_t)el0_stack + sizeof(el0_stack);
+
+    // Set EL0 stack, ELR_EL1, SPSR_EL1, then eret
+    asm volatile(
+        // Set EL0 stack pointer
+        "msr sp_el0, %0\n"
+        // Set the exception return address (user entry)
+        "msr elr_el1, %1\n"
+        // Set SPSR_EL1: EL0t, interrupts enabled
+        "msr spsr_el1, %2\n"
+        // Return to EL0
+        "eret\n"
+        :
+        : "r"(sp_el0), "r"(user_mode_entry), "r"(0x0)
+        : "memory"
+    );
+}
+
 extern "C" int main()
 {
     log_subsystem("kernel", LOG_NONE, "booting\n");
@@ -80,18 +116,15 @@ extern "C" int main()
 
     fb_draw_rect(0, 0, FB_WIDTH, FB_HEIGHT, 0x0000);
     for (volatile int i = 0; i < bootDelay; i++);
-    
-    int ctx1 = CGContextCreate(200, 50);
-    CGContextFillRect(ctx1, 0, 0, 200, 50, 0xF800); // red
 
-    int ctx2 = CGContextCreate(100, 100);
-    CGContextFillRect(ctx2, 0, 0, 100, 100, 0x001F); // blue
+    log_subsystem("kernel", LOG_NONE, "entering EL0\n");
+    enter_user_mode();
 
-    int layer1 = LayerCreate(ctx1, 100, 50);
-    int layer2 = LayerCreate(ctx2, 150, 100);
+    // Should never reach here
+    panic("USER SWITCH FAILED");
 
     while(1)
     {
-        CompositorDrawDirty();
+        //CompositorDrawDirty();
     }
 }
