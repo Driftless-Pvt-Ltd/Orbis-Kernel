@@ -5,82 +5,86 @@
 __asm__("call main\n\t"  // jump to main always and hang
         "jmp $");
 
-#define MAX_TASKS 10
+#define MAX_PROCESSES 10
 
-// Forward declarations of processes
-void process1();
-void process2();
-void process3();
+typedef enum {
+    PROC_RUNNING,
+    PROC_READY,
+    PROC_TERMINATED
+} proc_status_t;
 
-// Scheduler prototype
-void scheduler();
+typedef struct {
+    int pid;
+    char* name;
+    void (*entry_point)();
+    proc_status_t status;
+} process_t;
 
-// Task list and count
-void (*processes[MAX_TASKS])();
+process_t process_table[MAX_PROCESSES];
 int process_count = 0;
+int current_index = 0;
+int next_pid = 1;
 
-int current_process = 0;
-
-// Add a new task to the scheduler
-int add_task(void (*task)()) {
-    if (process_count >= MAX_TASKS) {
-        print_system_call("Task list full\n", 15);
-        return -1; // fail
+// add a process
+int add_process(char* name, void (*entry_point)()) {
+    if (process_count >= MAX_PROCESSES) {
+        print_system_call("Process table full\n", 19);
+        return -1;
     }
-    processes[process_count++] = task;
-    return 0; // success
+
+    process_table[process_count].pid = next_pid++;
+    process_table[process_count].name = name;
+    process_table[process_count].entry_point = entry_point;
+    process_table[process_count].status = PROC_READY;
+    return process_count++;
 }
 
-// Remove a task (by function pointer)
-int remove_task(void (*task)()) {
-    int found = -1;
-    for (int i = 0; i < process_count; i++) {
-        if (processes[i] == task) {
-            found = i;
-            break;
-        }
-    }
-    if (found == -1) return -1; // not found
-
-    // Shift remaining tasks left
-    for (int i = found; i < process_count - 1; i++) {
-        processes[i] = processes[i + 1];
-    }
-    process_count--;
-
-    // Fix current_process index if needed
-    if (current_process >= process_count) {
-        current_process = 0;
-    }
-
-    return 0; // success
+// Mark process as terminated
+void exit_process() {
+    process_table[current_index].status = PROC_TERMINATED;
 }
 
-void scheduler()
-{
-    while (1)
-    {
+// round-robin scheduler
+void scheduler() {
+    while (1) {
         if (process_count == 0) {
-            print_system_call("No tasks to run\n", 16);
-            while (1); // hang
+            print_system_call("No processes\n", 13);
+            while (1);
         }
 
-        int proc = current_process;
-        current_process = (current_process + 1) % process_count;
-        processes[proc]();
+        process_t* proc = (void*)0;
+        int start_index = current_index;
+
+        do {
+            current_index = (current_index + 1) % process_count;
+            proc = &process_table[current_index];
+        } while (proc->status != PROC_READY && current_index != start_index);
+
+        if (proc->status != PROC_READY) {
+            print_system_call("No runnable processes\n", 24);
+            while (1);
+        }
+
+        proc->status = PROC_RUNNING;
+        proc->entry_point();
+
+        if (proc->status == PROC_RUNNING)
+            proc->status = PROC_READY;  // if not exited, mark ready again
     }
 }
 
+// Example processes
 void process1() {
-    print_system_call("A", 1);
+    print_system_call("[PID 1] A\n", 9);
+    exit_process();
 }
 
 void process2() {
-    print_system_call("B", 1);
+    print_system_call("B\n", 2);
 }
 
 void process3() {
-    print_system_call("C", 1);
+    print_system_call("C\n", 2);
 }
 
 void main () 
@@ -94,9 +98,9 @@ void main ()
     log_debug("entering ring 3");
     #include "enter_user_mode.inc"
 
-    add_task(process1);
-    add_task(process2);
-    add_task(process3);
+    add_process("proc1", process1);
+    add_process("proc2", process2);
+    add_process("proc3", process3);
 
     scheduler();
     
