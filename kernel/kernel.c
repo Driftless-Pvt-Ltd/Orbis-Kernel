@@ -44,6 +44,24 @@ void exit_process() {
     process_table[current_index].status = PROC_TERMINATED;
 }
 
+int fork_process() {
+    if (process_count >= MAX_PROCESSES) {
+        print_system_call("Fork failed: process table full\n", 33);
+        return -1;
+    }
+
+    process_t* parent = &process_table[current_index];
+    process_t* child = &process_table[process_count];
+
+    child->pid = next_pid++;
+    child->name = parent->name; // You could append "-child" if you wanted
+    child->entry_point = parent->entry_point;
+    child->status = PROC_READY;
+
+    print_system_call("Forked process\n", 15);
+    return child->pid;
+}
+
 // round-robin scheduler
 void scheduler() {
     while (1) {
@@ -75,16 +93,18 @@ void scheduler() {
 
 // Example processes
 void process1() {
-    print_system_call("[PID 1] A\n", 9);
-    exit_process();
+    print_system_call("A\n", 2);
+    exit_system_call();
 }
 
 void process2() {
     print_system_call("B\n", 2);
+    exit_system_call();
 }
 
 void process3() {
     print_system_call("C\n", 2);
+    exit_system_call();
 }
 
 void main () 

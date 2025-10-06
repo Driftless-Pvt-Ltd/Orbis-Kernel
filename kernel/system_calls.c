@@ -18,3 +18,36 @@ void print_system_call(char* string, uint32_t bytes)
 		__asm__ volatile("pop ecx"); // return ecx value
     }
 }
+
+void exit_system_call()
+{
+	__asm__ volatile("push ecx"); // save ecx value
+	__asm__ volatile("push ebx"); // save ebx value
+	__asm__ volatile("push edx"); // save edx value
+
+	__asm__ volatile("mov edx, 1"); // edx is syscall number
+	__asm__ volatile("int 0x80"); // syscall
+
+	__asm__ volatile("pop edx"); // return edx value
+	__asm__ volatile("pop ebx"); // return ebx value
+	__asm__ volatile("pop ecx"); // return ecx value
+}
+
+int fork_system_call()
+{
+	int ret;
+
+	__asm__ volatile("push ecx");
+	__asm__ volatile("push ebx");
+	__asm__ volatile("push edx");
+
+	__asm__ volatile("mov edx, 2");   // syscall number: fork
+	__asm__ volatile("int 0x80");    // invoke syscall
+	__asm__ volatile("mov %%eax, %0" : "=r"(ret));  // read return value
+
+	__asm__ volatile("pop edx");
+	__asm__ volatile("pop ebx");
+	__asm__ volatile("pop ecx");
+
+	return ret;
+}

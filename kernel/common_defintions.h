@@ -15,4 +15,7 @@
 #define KERNEL_TASK_CODE 0
 typedef enum task_status{  alive=1,  waiting=2,  dead=0  } task_status;
 
+void exit_process();
+int fork_process();
+
 #endif
