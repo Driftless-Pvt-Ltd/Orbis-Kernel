@@ -17,15 +17,24 @@ void empty_int_func(void* x)
     //print("im inside an interrupt",23);
 }
 
+int stop_panic = 0;
+
 void gpf_int_func(void* x)
 {
     __asm__ volatile ("cli");
-    print("GPF",3);
+
+    if (!stop_panic)
+        log_error("general protection fault triggered");
+
+    stop_panic = 1;
 }
 
 void idt_init() //init idt table
 {
     initialize_pic();
+
+    log_debug("initializing descriptor table");
+
     idtr.base = (uintptr_t)&idt[0];
     idtr.limit = (uint16_t)sizeof(idt_entry_t) * IDT_MAX_DESCRIPTORS - 1;
 
@@ -36,15 +45,18 @@ void idt_init() //init idt table
     
     idt_set_descriptor(0x0d,(void*)gpf_int_func,IDT_FLAG_HW); // interrupt 14 GPF
 
+    log_debug("initializing system calls");
     idt_set_descriptor(0x80,(void*)system_call_handler,IDT_FLAG_USER); // int 0x80 system call handler
     
-
+    log_debug("loading descriptor table");
     __asm__ volatile ("lidt %0" : : "m"(idtr)); // load the new IDT
     __asm__ volatile ("sti"); // set the interrupt flag
 }
 
 void initialize_pic()
 {
+    log_debug("initializing PIC");
+
     __asm__ volatile("push eax");
 
     __asm__ volatile("mov al, 0b00010001"); // icw1 - general

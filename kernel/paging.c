@@ -63,6 +63,8 @@ void paging_init()
 {
     __asm__ volatile("cli");
 
+    log_debug("initializing page tables");
+
     for(int i =0 ;i<1024;++i) // create 1024 on 1024 page tables for whole 4GB memory
     {
         uint32_t current_page_memory_location= (uint32_t)(page_table)+i*0x1000;
@@ -70,14 +72,17 @@ void paging_init()
         create_page_table((page_entry*)current_page_memory_location,current_physical_memory_location);
     }
 
+    log_debug("creating the dir table");
     create_directory_table(directory_table,page_table); // create the mighty directory table
 
-    //loads the page directory address onto the CR3 register, where the MMU will find it
+    log_debug("loading page directory");
+    // loads the page directory address onto the CR3 register, where the MMU will find it
     __asm__ volatile("mov cr3, %0\n\t"
     : 
     : "r" (directory_table));
 
-    //enabling paging (changing 32th bit of cr0)
+    log_debug("enabling paging");
+    // enabling paging (changing 32th bit of cr0)
     __asm__ volatile("mov eax, cr0");
     __asm__ volatile("or eax, 0x80000000");
     __asm__ volatile("mov cr0, eax");

@@ -3,6 +3,6 @@
 
 #include <stdint.h> //for type definitions
 
-void print_system_call(char*,uint32_t) ;
+void print_system_call(char* string, uint32_t bytes);
 
 #endif

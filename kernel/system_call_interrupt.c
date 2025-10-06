@@ -1,23 +1,24 @@
 #include "system_call_interrupt.h"
 
-//this is system_call_handel(int 0x80), edx register indicates which function the user wanted to do.
+#define SYS_PRINT 0
+
 void system_call_handler(void* x)
 {
     uint32_t system_call_number;
-    char* char_pointer; // for printing sys call - pointer to string
-    uint32_t string_length; // for printing sys call - length of string
+    uint32_t arg1;
+    uint32_t arg2;
     __asm__ volatile ("cli");
-    __asm__ volatile ("mov %0,edx": "=r" (system_call_number)); // get the last edx, which indicates which system call it is
+    __asm__ volatile ("mov %0,edx": "=r" (system_call_number)); // EDX=syscall num
+    __asm__ volatile ("mov %0,ecx": "=r" (arg2)); // ECX=arg2
+    __asm__ volatile ("mov %0,ebx": "=r" (arg1)); // EBX=arg1
     switch(system_call_number)
     {
-        case 1: // print interrupt
-        	__asm__ volatile ("mov %0,ecx": "=r" (string_length)); // get the last ecx - which indicates string length
-            __asm__ volatile ("mov %0,ebx": "=r" (char_pointer)); // get pointer of char to print
-            print(char_pointer,string_length);
+        case SYS_PRINT:
+            print((const char *)arg1, arg2);
             break;
 
-
         default:
+            log_error("unknown syscall number");
             break;
     }
 
