@@ -70,8 +70,8 @@ cd Orbis-Kernel
 ## Roadmap
 
 - [x] Complete kernel foundation
-- [ ] Add system calls & APIs
-- [ ] Complete multitasking and process isolation
+- [x] Add system calls & APIs
+- [x] Complete multitasking and process isolation
 - [ ] Implement full GUI with window management
 - [ ] Enhance PE/ELF/Mach-O loader robustness
 - [ ] Add filesystem and network support
@@ -100,6 +100,7 @@ Thank you for helping build the future of open-source operating systems!
 Orbis is **open for contribution.** Interested developers can fork the repository, submit pull requests, and join discussions in the GitHub issues.
 
 For professional inquiries or collaboration, reach out via email: minicomputersoftware@gmail.com
+
 
 
 
