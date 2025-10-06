@@ -16,7 +16,7 @@ Orbis is a next-generation 64-bit OS designed from scratch to run on **x86_64, A
 - **Custom kernel and multitasking support**  
 - **Cross-platform abstraction layer** for seamless hardware support  
 
-Currently developed by a small, passionate team of three contributors, with active collaboration and modular design principles.
+Currently developed by a small, passionate team of four contributors, with active collaboration and modular design principles.
 
 ---
 
@@ -100,6 +100,7 @@ Thank you for helping build the future of open-source operating systems!
 Orbis is **open for contribution.** Interested developers can fork the repository, submit pull requests, and join discussions in the GitHub issues.
 
 For professional inquiries or collaboration, reach out via email: minicomputersoftware@gmail.com
+
 
 
 
