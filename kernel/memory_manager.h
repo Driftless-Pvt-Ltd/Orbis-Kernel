@@ -9,4 +9,5 @@
 extern uint32_t total_bytes_allocated; // every request gets
 
 void* malloc(uint32_t);
+void free(void*);
 #endif
