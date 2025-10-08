@@ -29,7 +29,7 @@ int next_pid = 1;
 // add a process
 int add_process(char* name, void (*entry_point)()) {
     if (process_count >= MAX_PROCESSES) {
-        print_system_call("Process table full\n", 19);
+        puts("Process table full\n", 19);
         return -1;
     }
 
@@ -55,7 +55,7 @@ void exit_process() {
 
 int fork_process() {
     if (process_count >= MAX_PROCESSES) {
-        print_system_call("Fork failed: process table full\n", 33);
+        puts("Fork failed: process table full\n", 33);
         return -1;
     }
 
@@ -63,11 +63,11 @@ int fork_process() {
     process_t* child = &process_table[process_count];
 
     child->pid = next_pid++;
-    child->name = parent->name; // You could append "-child" if you wanted
+    child->name = parent->name;
     child->entry_point = parent->entry_point;
     child->status = PROC_READY;
 
-    print_system_call("Forked process\n", 15);
+    puts("Forked process\n", 15);
     return child->pid;
 }
 
@@ -75,7 +75,7 @@ int fork_process() {
 void scheduler() {
     while (1) {
         if (process_count == 0) {
-            print_system_call("No processes\n", 13);
+            puts("No processes\n", 13);
             while (1);
         }
 
@@ -88,7 +88,7 @@ void scheduler() {
         } while (proc->status != PROC_READY && current_index != start_index);
 
         if (proc->status != PROC_READY) {
-            print_system_call("No runnable processes\n", 24);
+            puts("No runnable processes\n", 24);
             while (1);
         }
 
@@ -106,13 +106,12 @@ void launchd()
     ramfs_init();
     ramfs_demo();
 
-    exit_system_call();
+    puts("Hello, World!\n");
+
+    exit(0);
 }
 
-void idle()
-{
-    // ...
-}
+void idle() {}
 
 void main()
 {

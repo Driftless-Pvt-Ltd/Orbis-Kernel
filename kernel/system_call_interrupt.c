@@ -1,12 +1,14 @@
 #include "system_call_interrupt.h"
 #include "common_defintions.h"
+#include "stdlib.h"
+#include "ramfs.h"
 
-#define SYS_PRINT 0
-
-// XNU System Calls
-// Source: https://gist.github.com/BlueFalconHD/da39227ec22908c8e9d12e458a5155d4
 #define SYS_EXIT 1
 #define SYS_FORK 2
+#define SYS_READ 3
+#define SYS_WRITE 4
+#define SYS_OPEN 5
+#define SYS_CLOSE 6
 
 void system_call_handler(void* x)
 {
@@ -23,10 +25,6 @@ void system_call_handler(void* x)
 
     switch(system_call_number)
     {
-        case SYS_PRINT:
-            print((const char *)arg1, arg2);
-            break;
-
         case SYS_EXIT:
             exit_process();
             break;
@@ -34,6 +32,28 @@ void system_call_handler(void* x)
         case SYS_FORK:
             return_value = fork_process();
             break;
+
+        case SYS_WRITE:
+        {
+            const char *name = (const char *)arg1;
+
+            // check for specific devices
+            if (strcmp(name, "device_screen") == 0)
+            {
+                log_error("write(): no screen initialized yet");
+            }
+            if (strcmp(name, "device_tty") == 0)
+            {
+                const char *string = (const char *)arg2;
+                print(string, strlen(string));
+            }
+            else
+            {
+                uint8_t *data = (uint8_t*)arg2;
+                ramfs_write_file(name, data, sizeof(data), 0);
+            }
+            break;
+        }
 
         default:
             log_error("unknown syscall number");

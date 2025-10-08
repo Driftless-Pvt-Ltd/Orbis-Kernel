@@ -6,6 +6,8 @@
 #include "common_defintions.h"
 #include <stdint.h>
 
+#define RAMFS_MAX_WRITE_LEN 1024
+
 typedef struct ramfs_node {
     char name[64];
     uint8_t *data;
@@ -18,6 +20,10 @@ typedef struct ramfs_node {
 } ramfs_node_t;
 
 void ramfs_init();
+
+int ramfs_read_file(const char* path, void* buf, uint32_t len, uint32_t offset);
+int ramfs_write_file(const char* path, const void* buf, uint32_t len, uint32_t offset);
+
 void ramfs_demo();
 
 #endif

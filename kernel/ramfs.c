@@ -16,7 +16,8 @@ static void *ralloc(void *old, uint32_t old_sz, uint32_t new_sz) {
     if (!p) return 0;
     if (old) {
         memcpy(p, old, old_sz);
-        // no free() yet? if you got it, free(old);
+        // no free() yet
+        // if any of you got it, do free(old) here
     }
     return p;
 }
@@ -25,7 +26,7 @@ void ramfs_init() {
     ramfs_root = zalloc(sizeof(ramfs_node_t));
     strcpy(ramfs_root->name, "/");
     ramfs_root->is_dir = 1;
-    print_system_call("ramfs: initialized\n", 20);
+    puts("ramfs: initialized\n");
 }
 
 ramfs_node_t *ramfs_create(ramfs_node_t *parent, const char *name, int is_dir) {
@@ -69,16 +70,56 @@ int ramfs_read(ramfs_node_t *file, void *buf, uint32_t len, uint32_t offset) {
     return len;
 }
 
-void ramfs_demo() {
-    ramfs_node_t *etc = ramfs_create(ramfs_root, "etc", 1);
-    ramfs_node_t *file = ramfs_create(etc, "config.txt", 0);
+ramfs_node_t* ramfs_resolve_path(const char* path) {
+    if (!path || path[0] != '/') return 0; // must start with root
 
-    const char *msg = "hello from ramfs!\n";
-    ramfs_write(file, msg, strlen(msg), 0);
+    ramfs_node_t* current = ramfs_root;
+    char buf[64];
+    int i = 0, j = 0;
+
+    while (1) {
+        if (path[i] == '/' || path[i] == '\0') {
+            buf[j] = 0; // null terminate component
+            if (j > 0) {
+                current = ramfs_find(current, buf);
+                if (!current) return 0; // file not found
+            }
+            j = 0;
+            if (path[i] == '\0') break; // end of path
+        } else {
+            buf[j++] = path[i];
+        }
+        i++;
+    }
+
+    return current;
+}
+
+int ramfs_read_file(const char* path, void* buf, uint32_t len, uint32_t offset) {
+    ramfs_node_t* file = ramfs_resolve_path(path);
+    if (!file) return -1;
+    return ramfs_read(file, buf, len, offset);
+}
+
+int ramfs_write_file(const char* path, const void* buf, uint32_t len, uint32_t offset) {
+    ramfs_node_t* file = ramfs_resolve_path(path);
+    if (!file) return -1;
+
+    // cap the length so we don't write too much
+    if (len > RAMFS_MAX_WRITE_LEN) len = RAMFS_MAX_WRITE_LEN;
+
+    return ramfs_write(file, buf, len, offset);
+}
+
+void ramfs_demo() {
+    ramfs_create(ramfs_root, "etc", 1);
+    ramfs_create(ramfs_resolve_path("/etc"), "config.txt", 0);
+
+    const char* msg = "hello via path!\n";
+    ramfs_write_file("/etc/config.txt", msg, strlen(msg), 0);
 
     char buf[64];
-    int n = ramfs_read(file, buf, sizeof(buf) - 1, 0);
+    int n = ramfs_read_file("/etc/config.txt", buf, sizeof(buf)-1, 0);
     buf[n] = 0;
-
-    print_system_call(buf, n);
+    puts(buf);
 }

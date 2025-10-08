@@ -18,6 +18,31 @@ void clear_screen()
 #define SCREEN_HEIGHT 25
 #define SCREEN_LINE_SIZE (SCREEN_WIDTH * 2)  // 160 bytes per line
 
+void print_char(char c)
+{
+    if (c == '\n')
+    {
+        // Move g_video_memory to next line start
+        int offset = g_video_memory - (char*)SCREEN_MMIO_LOCATION;
+        int next_line_offset = ((offset / SCREEN_LINE_SIZE) + 1) * SCREEN_LINE_SIZE;
+        g_video_memory = (char*)SCREEN_MMIO_LOCATION + next_line_offset;
+
+        if (g_video_memory >= (char*)SCREEN_END)
+        {
+            clear_screen();
+        }
+        return;
+    }
+
+    if (g_video_memory >= (char*)SCREEN_END)
+    {
+        clear_screen();
+    }
+
+    *g_video_memory++ = c;      // write character
+    *g_video_memory++ = 0x0f;   // white on black
+}
+
 void print(const char* word, int length)
 {
     int i;
