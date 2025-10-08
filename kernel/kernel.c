@@ -1,6 +1,7 @@
 #include "print.h"
 #include "idt.h"
 #include "paging.h"
+#include "ramfs.h"
 
 __asm__("call main\n\t"  // jump to main always and hang
         "jmp $");
@@ -42,6 +43,14 @@ int add_process(char* name, void (*entry_point)()) {
 // Mark process as terminated
 void exit_process() {
     process_table[current_index].status = PROC_TERMINATED;
+
+    // move last process into current slot
+    if (current_index != process_count - 1) {
+        process_table[current_index] = process_table[process_count - 1];
+    }
+
+    process_count--;
+    if (current_index >= process_count) current_index = 0;
 }
 
 int fork_process() {
@@ -91,23 +100,21 @@ void scheduler() {
     }
 }
 
-// Example processes
-void process1() {
-    print_system_call("A\n", 2);
+void launchd()
+{
+    // initialize ramfs
+    ramfs_init();
+    ramfs_demo();
+
     exit_system_call();
 }
 
-void process2() {
-    print_system_call("B\n", 2);
-    exit_system_call();
+void idle()
+{
+    // ...
 }
 
-void process3() {
-    print_system_call("C\n", 2);
-    exit_system_call();
-}
-
-void main () 
+void main()
 {
     clear_screen();
 
@@ -118,9 +125,8 @@ void main ()
     log_debug("entering ring 3");
     #include "enter_user_mode.inc"
 
-    add_process("proc1", process1);
-    add_process("proc2", process2);
-    add_process("proc3", process3);
+    add_process("launchd", launchd);
+    add_process("idle", idle);
 
     scheduler();
     
