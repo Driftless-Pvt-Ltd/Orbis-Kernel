@@ -31,7 +31,7 @@ cd ..
 cat boot_sect.bin kernel.bin > os-image # make image
 truncate -s 16M os-image #force the image to have enouh bytes, so the read-disk instruction will not overflow.
 
-qemu-system-x86_64 -monitor stdio -D ./log.txt -d int -m 4000 os-image
+qemu-system-x86_64 -m 4000 -serial stdio os-image
 
 find . -name "*.o" -type f -delete #clean
 find . -name "*.bin" -type f -delete

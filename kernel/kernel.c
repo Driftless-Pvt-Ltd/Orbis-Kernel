@@ -113,6 +113,10 @@ void launchd()
     void (*func)() = (void(*)())demo->data;  // treat as function ptr
 
     add_process("demo", func);
+
+    screen_write_t pixel = { 10, 100, WHITE };
+
+    write("device_screen", &pixel);
     
     puts("Hello, World!\n");
 
@@ -128,6 +132,8 @@ void main()
     log_info("booting");
     idt_init();
     paging_init();
+
+    init_vga();
 
     log_debug("entering ring 3");
     #include "enter_user_mode.inc"

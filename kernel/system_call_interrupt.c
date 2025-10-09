@@ -40,11 +40,9 @@ void system_call_handler(void* x)
             // check for specific devices
             if (strcmp(name, "device_screen") == 0)
             {
-                int x = arg2 % TTY_WIDTH;
-                int y = arg2 / TTY_WIDTH;
+                screen_write_t *screen_args = (screen_write_t *)arg2;
 
-                tty_draw_pixel(x, y, 0x0 | (0xF << 4));
-                tty_flush();
+                putpixel(screen_args->x, screen_args->y, screen_args->color);
             }
             if (strcmp(name, "device_tty") == 0)
             {
