@@ -6,21 +6,6 @@
 __asm__("call main\n\t"  // jump to main always and hang
         "jmp $");
 
-#define MAX_PROCESSES 10
-
-typedef enum {
-    PROC_RUNNING,
-    PROC_READY,
-    PROC_TERMINATED
-} proc_status_t;
-
-typedef struct {
-    int pid;
-    char* name;
-    void (*entry_point)();
-    proc_status_t status;
-} process_t;
-
 process_t process_table[MAX_PROCESSES];
 int process_count = 0;
 int current_index = 0;
@@ -110,15 +95,15 @@ void launchd()
     if (demo)
         puts("demo.bin loaded\n");
 
-    void (*func)() = (void(*)())demo->data;  // treat as function ptr
+    void (*func)() = (void(*)())demo->data;
 
-    add_process("demo", func);
+    int idx = add_process("demo", func);
+    process_table[idx].base_addr = (uintptr_t)demo->data;
 
-    screen_write_t pixel = { 10, 100, WHITE };
+    puts("exiting launchd\n");
 
-    write("device_screen", &pixel);
-    
-    puts("Hello, World!\n");
+    // screen_write_t pixel = { 10, 100, WHITE };
+    // write("device_screen", &pixel);
 
     exit(0);
 }
@@ -133,7 +118,7 @@ void main()
     idt_init();
     paging_init();
 
-    init_vga();
+    //init_vga();
 
     log_debug("entering ring 3");
     #include "enter_user_mode.inc"

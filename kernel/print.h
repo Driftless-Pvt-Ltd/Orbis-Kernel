@@ -18,6 +18,6 @@ void log_warn(const char* msg);
 void log_info(const char* msg);
 void log_debug(const char* msg);
 void init_vga();
-void putpixel(uint16_t x, uint16_t y, uint8_t color);
+void putpixel_vga(uint16_t x, uint16_t y, uint8_t color);
 
 #endif

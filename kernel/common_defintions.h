@@ -16,6 +16,25 @@
 #define VGA_MAX_WIDTH 320
 #define VGA_MAX_HEIGHT 200
 
+#define MAX_PROCESSES 10
+
+typedef enum {
+    PROC_RUNNING,
+    PROC_READY,
+    PROC_TERMINATED
+} proc_status_t;
+
+typedef struct {
+    int pid;
+    char* name;
+    void (*entry_point)();
+    proc_status_t status;
+    uintptr_t base_addr;
+} process_t;
+
+extern process_t process_table[MAX_PROCESSES];
+extern int current_index;
+
 enum vga_color {
   BLACK,
   BLUE,

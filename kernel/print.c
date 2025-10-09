@@ -278,7 +278,7 @@ void init_vga()
   clear_screenVGA();
 }
 
-void putpixel(uint16_t x, uint16_t y, uint8_t color)
+void putpixel_vga(uint16_t x, uint16_t y, uint8_t color)
 {
   uint32_t index = 0;
   index = 320 * y + x;

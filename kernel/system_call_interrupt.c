@@ -35,30 +35,30 @@ void system_call_handler(void* x)
 
         case SYS_WRITE:
         {
-            const char *name = (const char *)arg1;
+            process_t *proc = &process_table[current_index];
 
-            // check for specific devices
+            const char *name = (const char *)(proc->base_addr + arg1);
+            const char *string = (const char *)(proc->base_addr + arg2);
+
             if (strcmp(name, "device_screen") == 0)
             {
-                screen_write_t *screen_args = (screen_write_t *)arg2;
-
-                putpixel(screen_args->x, screen_args->y, screen_args->color);
+                screen_write_t *screen_args = (screen_write_t *)(proc->base_addr + arg2);
+                putpixel_vga(screen_args->x, screen_args->y, screen_args->color);
             }
-            if (strcmp(name, "device_tty") == 0)
+            else if (strcmp(name, "device_tty") == 0)
             {
-                const char *string = (const char *)arg2;
                 print(string, strlen(string));
             }
             else
             {
-                uint8_t *data = (uint8_t*)arg2;
-                ramfs_write_file(name, data, sizeof(data), 0);
+                uint8_t *data = (uint8_t*)(proc->base_addr + arg2);
+                ramfs_write_file(name, data, strlen((char*)data), 0);
             }
             break;
         }
 
         case 7:
-            print("test", 4);
+            print("test\n", 5);
             break;
 
         default:
