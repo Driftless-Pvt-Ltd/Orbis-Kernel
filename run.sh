@@ -3,7 +3,13 @@ find . -name "*.o" -type f -delete #clean
 find . -name "*.bin" -type f -delete
 find . -name "*.tmp" -type f -delete
 
-cd ./kernel
+cd ./apps/dummy
+make
+xxd -i demo.bin > demo_bin.h
+cp -f demo_bin.h ../../kernel/demo_bin.h
+rm demo_bin.h
+
+cd ../../kernel
 CFiles=`find . -name "*.c" -type f` #get all c files
 
 cd ../boot #compile asm files

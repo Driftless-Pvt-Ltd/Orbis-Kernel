@@ -40,7 +40,11 @@ void system_call_handler(void* x)
             // check for specific devices
             if (strcmp(name, "device_screen") == 0)
             {
-                log_error("write(): no screen initialized yet");
+                int x = arg2 % TTY_WIDTH;
+                int y = arg2 / TTY_WIDTH;
+
+                tty_draw_pixel(x, y, 0x0 | (0xF << 4));
+                tty_flush();
             }
             if (strcmp(name, "device_tty") == 0)
             {
@@ -54,6 +58,10 @@ void system_call_handler(void* x)
             }
             break;
         }
+
+        case 7:
+            print("test", 4);
+            break;
 
         default:
             log_error("unknown syscall number");

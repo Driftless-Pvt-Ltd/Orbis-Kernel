@@ -161,3 +161,65 @@ int string_length(const char* str)
     while (str[len] != '\0') len++;
     return len;
 }
+
+TTY_Pixel tty_buffer[TTY_HEIGHT][TTY_WIDTH];
+
+#define COLOR_BLACK 0x0
+#define COLOR_BLUE 0x1
+#define COLOR_GREEN 0x2
+#define COLOR_CYAN 0x3
+#define COLOR_RED 0x4
+#define COLOR_MAGENTA 0x5
+#define COLOR_BROWN 0x6
+#define COLOR_LIGHT_GRAY 0x7
+#define COLOR_DARK_GRAY 0x8
+#define COLOR_LIGHT_BLUE 0x9
+#define COLOR_LIGHT_GREEN 0xA
+#define COLOR_LIGHT_CYAN 0xB
+#define COLOR_LIGHT_RED 0xC
+#define COLOR_LIGHT_MAGENTA 0xD
+#define COLOR_YELLOW 0xE
+#define COLOR_WHITE 0xF
+
+// Draw a “pixel” (space with color) at x,y
+void tty_draw_pixel(int x, int y, uint8_t color) {
+    if (x < 0 || x >= TTY_WIDTH || y < 0 || y >= TTY_HEIGHT)
+        return;
+    tty_buffer[y][x].c = ' ';
+    tty_buffer[y][x].color = color;
+}
+
+// Flush framebuffer to VGA memory
+void tty_flush() {
+    char* video = (char*)SCREEN_MMIO_LOCATION;
+    for (int y = 0; y < TTY_HEIGHT; y++) {
+        for (int x = 0; x < TTY_WIDTH; x++) {
+            *video++ = tty_buffer[y][x].c;
+            *video++ = tty_buffer[y][x].color;
+        }
+    }
+}
+
+// Clear framebuffer
+void tty_clear() {
+    for (int y = 0; y < TTY_HEIGHT; y++) {
+        for (int x = 0; x < TTY_WIDTH; x++) {
+            tty_buffer[y][x].c = ' ';
+            tty_buffer[y][x].color = COLOR_BLACK | (COLOR_LIGHT_GRAY << 4);
+        }
+    }
+    tty_flush();
+}
+
+// Demo rainbow screen
+void tty_demo() {
+    tty_clear();
+    for (int y = 0; y < TTY_HEIGHT; y++) {
+        for (int x = 0; x < TTY_WIDTH; x++) {
+            uint8_t fg = (x + y) % 16;           // foreground color
+            uint8_t bg = (15 - (x + y) % 16);    // background color
+            tty_draw_pixel(x, y, fg | (bg << 4));
+        }
+    }
+    tty_flush();
+}

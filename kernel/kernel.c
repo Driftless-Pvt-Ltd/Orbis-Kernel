@@ -106,6 +106,14 @@ void launchd()
     ramfs_init();
     ramfs_demo();
 
+    ramfs_node_t* demo = ramfs_resolve_path("/bin/demo.bin");
+    if (demo)
+        puts("demo.bin loaded\n");
+
+    void (*func)() = (void(*)())demo->data;  // treat as function ptr
+
+    add_process("demo", func);
+    
     puts("Hello, World!\n");
 
     exit(0);

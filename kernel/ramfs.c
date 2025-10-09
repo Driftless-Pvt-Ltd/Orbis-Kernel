@@ -1,5 +1,6 @@
 #include "ramfs.h"
 #include "stdlib.h"
+#include "demo_bin.h"
 
 static ramfs_node_t *ramfs_root = 0;
 
@@ -111,9 +112,21 @@ int ramfs_write_file(const char* path, const void* buf, uint32_t len, uint32_t o
     return ramfs_write(file, buf, len, offset);
 }
 
+void ramfs_load_demo_bin() {
+    ramfs_node_t* bin_dir = ramfs_find(ramfs_root, "bin");
+    if (!bin_dir)
+        bin_dir = ramfs_create(ramfs_root, "bin", 1);
+
+    ramfs_node_t* demo = ramfs_create(bin_dir, "demo.bin", 0);
+    ramfs_write(demo, demo_bin, demo_bin_len, 0);
+
+    puts("ramfs: demo.bin loaded into /bin/demo.bin\n");
+}
+
 void ramfs_demo() {
     ramfs_create(ramfs_root, "etc", 1);
     ramfs_create(ramfs_resolve_path("/etc"), "config.txt", 0);
+    ramfs_load_demo_bin();
 
     const char* msg = "hello via path!\n";
     ramfs_write_file("/etc/config.txt", msg, strlen(msg), 0);
