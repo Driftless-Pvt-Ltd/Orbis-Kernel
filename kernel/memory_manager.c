@@ -11,6 +11,6 @@ void* malloc(uint32_t length)
 }
 void* free(void* Location)
 {
-    Block* freemyboy = ((Block*)Location) - 1;
+    Block* freemyboy = ((Block*)Location);
     freemyboy->active = 1;
 }
